@@ -1,15 +1,80 @@
 # api/services/polygon.py
 import os
-from dotenv import load_dotenv
+import time
 from typing import Dict, Any, Optional
+from collections import deque
+from dotenv import load_dotenv
 from polygon import RESTClient
+from polygon.rest.models import (
+    TickerNews,
+    Agg,
+    OptionsContract,
+    Ticker
+)
 from api.models.enums import Timespan, SortOrder
 from api.core.exceptions import PolygonAPIException
 
 load_dotenv()
 
+class PolygonClientSingleton:
+    """
+    Singleton class for Polygon REST client with built-in rate limiting.
+    """
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(PolygonClientSingleton, cls).__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
+    
+    def _initialize(self):
+        """Initialize the singleton instance."""
+        self.client = RESTClient(os.getenv('POLYGON_API_KEY'))
+        # Rate limiting tracking
+        self.request_times = deque(maxlen=10)  # Track last 10 requests
+        self.max_requests = 5  # 5 requests per minute
+        self.time_window = 60  # 60 seconds (1 minute)
+    
+    def _check_rate_limit(self):
+        """
+        Check if we're about to exceed the rate limit and handle accordingly.
+        
+        Returns:
+            bool: True if request can proceed, False if we need to wait
+        """
+        current_time = time.time()
+        
+        # Remove requests older than the time window
+        while self.request_times and current_time - self.request_times[0] > self.time_window:
+            self.request_times.popleft()
+        
+        # If we've hit the rate limit, wait until we can proceed
+        if len(self.request_times) >= self.max_requests:
+            oldest_request = self.request_times[0]
+            time_to_wait = oldest_request + self.time_window - current_time
+            
+            if time_to_wait > 0:
+                print(f"Rate limit reached. Waiting {time_to_wait:.2f} seconds...")
+                time.sleep(time_to_wait + 0.1)  # Add a small buffer
+        
+        # Add the current request time
+        self.request_times.append(time.time())
+        return True
+    
+    def get_client(self):
+        """Get the underlying RESTClient for direct use."""
+        self._check_rate_limit()
+        return self.client
+
 class PolygonService:
     """Service for interacting with the Polygon.io API using the official SDK."""
+    
+    @classmethod
+    def _get_client(cls):
+        """Get the singleton Polygon client instance."""
+        polygon_singleton = PolygonClientSingleton()
+        return polygon_singleton.get_client()
     
     @classmethod
     async def get_stock_aggregates(
@@ -40,8 +105,8 @@ class PolygonService:
             API response with OHLC data
         """
         try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+            # Get the client
+            client = cls._get_client()
             
             # Use the SDK to fetch aggregates
             aggs = []
@@ -100,8 +165,8 @@ class PolygonService:
             API response with ticker details
         """
         try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+            # Get the client
+            client = cls._get_client()
             
             # Use the SDK to fetch ticker details
             details = client.get_ticker_details(
@@ -157,109 +222,73 @@ class PolygonService:
         Returns:
             API response with news articles
         """
-        import time
-        import random
-        
-        # Maximum number of retries for rate limit errors
-        max_retries = 3
-        retry_count = 0
-        
-        while retry_count <= max_retries:
-            try:
-                # Create a client with the API key
-                client = RESTClient(os.getenv('POLYGON_API_KEY'))
-                
-                # Collect all parameters
-                # The SDK expects string values, not integers
-                params = {}
-                if ticker:
-                    params["ticker"] = ticker
-                if published_utc:
-                    params["published_utc"] = published_utc
-                params["order"] = order
-                params["limit"] = str(limit)  # Convert limit to string as the SDK expects
-                params["sort"] = sort
-                
-                # First attempt: Try to get the raw REST API response
-                # Some SDK versions have a method for this
-                try:
-                    # Using _get to access the raw response data
-                    # This makes a single request rather than using the iterator
-                    url_path = "/v2/reference/news"
-                    raw_response = client._get(url_path, params)
-                    return raw_response
-                except (AttributeError, TypeError) as e:
-                    # Fall back to using the iterator but limit to one request
-                    print(f"Direct API call failed, using iterator: {str(e)}")
-                    pass
-                
-                # If we can't get the raw response, use the iterator but collect only once
-                news_items = []
-                iterator = client.list_ticker_news(**params)
-                
-                # Instead of iterating through the generator which could make multiple requests,
-                # store the results from the initial request
-                for i, news in enumerate(iterator):
-                    # Convert news item to a dictionary
-                    news_dict = {}
-                    for key, value in vars(news).items():
-                        if key.startswith('_'):
-                            continue
-                        
-                        # Handle nested objects
-                        if key == "publisher" and hasattr(value, "__dict__"):
-                            news_dict[key] = {}
-                            for k, v in vars(value).items():
-                                if not k.startswith('_'):
-                                    news_dict[key][k] = v
-                        elif key == "insights" and isinstance(value, list):
-                            insights = []
-                            for insight in value:
-                                if hasattr(insight, "__dict__"):
-                                    insight_dict = {}
-                                    for k, v in vars(insight).items():
-                                        if not k.startswith('_'):
-                                            insight_dict[k] = v
-                                    insights.append(insight_dict)
-                            news_dict[key] = insights
-                        else:
-                            news_dict[key] = value
-                    
-                    news_items.append(news_dict)
-                    
-                    # Break after first batch to prevent multiple API calls
-                    # We should get up to 'limit' items in the first request
-                    if i + 1 >= limit:
-                        break
-                
-                # Stop after the first request regardless of how many items were returned
-                # This prevents multiple API calls
-                
-                # Construct response format matching the API
-                response = {
-                    "count": len(news_items),
-                    "next_url": None,  # We don't have this info from the iterator
-                    "request_id": "sdk_request",
-                    "results": news_items,
-                    "status": "OK"
-                }
-                
-                return response
-                
-            except Exception as e:
-                # Check if this is a rate limit error (429)
-                error_str = str(e)
-                if "429" in error_str and retry_count < max_retries:
-                    retry_count += 1
-                    
-                    # Exponential backoff with jitter
-                    backoff_time = (2 ** retry_count) + random.uniform(0, 1)
-                    print(f"Rate limit hit. Retrying in {backoff_time:.2f} seconds...")
-                    time.sleep(backoff_time)
+        try:
+            # Get the client
+            client = cls._get_client()
+            
+            # Collect all parameters
+            params = {}
+            if ticker:
+                params["ticker"] = ticker
+            if published_utc:
+                params["published_utc"] = published_utc
+            params["order"] = order
+            params["limit"] = str(limit)  # Convert limit to string as the SDK expects
+            params["sort"] = sort
+            
+            # Get news items using the SDK
+            news_items = []
+            count = 0
+            
+            for news in client.list_ticker_news(**params):
+                if not isinstance(news, TickerNews):
                     continue
-                else:
-                    # Other error or max retries exceeded
-                    raise PolygonAPIException(detail=f"Polygon API news error: {str(e)}")
+                
+                # Convert news item to a dictionary
+                news_dict = {}
+                for key, value in vars(news).items():
+                    if key.startswith('_'):
+                        continue
+                    
+                    # Handle nested objects
+                    if key == "publisher" and hasattr(value, "__dict__"):
+                        news_dict[key] = {}
+                        for k, v in vars(value).items():
+                            if not k.startswith('_'):
+                                news_dict[key][k] = v
+                    elif key == "insights" and isinstance(value, list):
+                        insights = []
+                        for insight in value:
+                            if hasattr(insight, "__dict__"):
+                                insight_dict = {}
+                                for k, v in vars(insight).items():
+                                    if not k.startswith('_'):
+                                        insight_dict[k] = v
+                                insights.append(insight_dict)
+                        news_dict[key] = insights
+                    else:
+                        news_dict[key] = value
+                
+                news_items.append(news_dict)
+                count += 1
+                
+                # Break after reaching the limit
+                if count >= limit:
+                    break
+            
+            # Construct response format matching the API
+            response = {
+                "count": len(news_items),
+                "next_url": None,  # We don't have this info from the iterator
+                "request_id": "sdk_request",
+                "results": news_items,
+                "status": "OK"
+            }
+            
+            return response
+                
+        except Exception as e:
+            raise PolygonAPIException(detail=f"Polygon API news error: {str(e)}")
                 
     @classmethod
     async def get_options_contracts(
@@ -292,8 +321,8 @@ class PolygonService:
             API response with options contracts data
         """
         try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+            # Get the client
+            client = cls._get_client()
             
             # Build parameters dictionary
             params = {}
@@ -314,18 +343,14 @@ class PolygonService:
             params["limit"] = limit
             params["sort"] = sort
             
-            # Try to get the raw response from the API
-            try:
-                url_path = "/v3/reference/options/contracts"
-                raw_response = client._get(url_path, params)
-                return raw_response
-            except (AttributeError, TypeError):
-                # Fall back to using the iterator method
-                pass
-            
             # Use the SDK to list options contracts
             contracts = []
+            count = 0
+            
             for contract in client.list_options_contracts(**params):
+                if not isinstance(contract, OptionsContract):
+                    continue
+                
                 # Convert contract object to dictionary
                 contract_dict = {}
                 for key, value in vars(contract).items():
@@ -347,9 +372,10 @@ class PolygonService:
                         contract_dict[key] = value
                         
                 contracts.append(contract_dict)
+                count += 1
                 
-                # Limit to requested number of contracts
-                if len(contracts) >= limit:
+                # Break after reaching the limit
+                if count >= limit:
                     break
             
             # Format the response to match our model
@@ -377,11 +403,27 @@ class PolygonService:
         sort: SortOrder = SortOrder.asc,
         limit: int = 120
     ) -> Dict[str, Any]:
-        try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+        """
+        Get options OHLC data using the Polygon SDK.
+        
+        Args:
+            options_ticker: Options contract ticker symbol
+            multiplier: Timespan multiplier
+            timespan: The size of the time window
+            from_date: Start date (YYYY-MM-DD)
+            to_date: End date (YYYY-MM-DD)
+            adjusted: Whether results are adjusted for splits
+            sort: Sort order (asc or desc)
+            limit: Maximum number of results
             
-            # Skip the direct API call attempt and only use the SDK
+        Returns:
+            API response with options OHLC data
+        """
+        try:
+            # Get the client
+            client = cls._get_client()
+            
+            # Use the SDK to fetch aggregates
             aggs = []
             for a in client.list_aggs(
                 ticker=options_ticker,
@@ -393,6 +435,9 @@ class PolygonService:
                 sort=sort.value,
                 limit=limit
             ):
+                if not isinstance(a, Agg):
+                    continue
+                    
                 aggs.append({
                     "c": a.close,
                     "h": a.high,
@@ -408,7 +453,7 @@ class PolygonService:
             response = {
                 "ticker": options_ticker,
                 "adjusted": adjusted,
-                "queryCount": limit,  # Use the requested limit for consistency with Polygon
+                "queryCount": limit,  # Use the requested limit for consistency
                 "resultsCount": len(aggs),  # Use the actual count of results
                 "status": "DELAYED" if len(aggs) > 0 else "OK",  # Match Polygon status pattern
                 "request_id": "sdk_request",
@@ -419,10 +464,6 @@ class PolygonService:
             return response
             
         except Exception as e:
-            # Log the full exception for debugging
-            import traceback
-            print(f"Error in get_options_aggregates: {str(e)}")
-            print(traceback.format_exc())
             raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
 
     @classmethod
@@ -450,8 +491,8 @@ class PolygonService:
             API response with ticker data
         """
         try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+            # Get the client
+            client = cls._get_client()
             
             # Build parameters dictionary
             params = {}
@@ -465,18 +506,14 @@ class PolygonService:
             params["limit"] = str(limit)  # SDK expects string
             params["sort"] = sort
             
-            # Try to get the raw response from the API
-            try:
-                url_path = "/v3/reference/tickers"
-                raw_response = client._get(url_path, params)
-                return raw_response
-            except (AttributeError, TypeError):
-                # Fall back to using the iterator method
-                pass
-            
-            # Use the SDK's list_tickers method as fallback
+            # Use the SDK's list_tickers method
             tickers = []
+            count = 0
+            
             for ticker in client.list_tickers(**params):
+                if not isinstance(ticker, Ticker):
+                    continue
+                    
                 # Convert ticker object to dictionary
                 ticker_dict = {}
                 for key, value in vars(ticker).items():
@@ -485,9 +522,10 @@ class PolygonService:
                     ticker_dict[key] = value
                 
                 tickers.append(ticker_dict)
+                count += 1
                 
-                # Limit to requested number of tickers
-                if len(tickers) >= limit:
+                # Break after reaching the limit
+                if count >= limit:
                     break
             
             # Format the response to match our model
@@ -531,8 +569,8 @@ class PolygonService:
             API response with OHLC data for the index
         """
         try:
-            # Create a client with the API key
-            client = RESTClient(os.getenv('POLYGON_API_KEY'))
+            # Get the client
+            client = cls._get_client()
             
             # Use the SDK to fetch aggregates
             aggs = []
@@ -545,6 +583,9 @@ class PolygonService:
                 sort=sort.value,
                 limit=limit
             ):
+                if not isinstance(a, Agg):
+                    continue
+                    
                 # Create aggregate data point
                 agg_data = {
                     "c": a.close,
