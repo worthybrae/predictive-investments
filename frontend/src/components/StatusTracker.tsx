@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { Progress } from './ui/progress';
+import { Badge } from './ui/badge';
 import { LineChart, BarChart3, Search, TrendingUp, DollarSign, CheckCircle } from 'lucide-react';
 
 export type PredictionStatus = 'pending' | 'analyzing' | 'researching' | 'finding_tickers' | 'creating_strategy' | 'completed' | 'failed';

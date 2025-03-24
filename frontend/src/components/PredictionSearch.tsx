@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 import SearchBar from './SearchBar';
@@ -63,7 +63,7 @@ interface PredictionStatusResponse {
 
 const PredictionSearch: React.FC = () => {
   // API base URL - change this to match your backend
-  const API_BASE_URL = 'https://preferred-alex-personal-stingrae-a1a23113.koyeb.app:8000';
+  const API_BASE_URL = 'http://localhost:8000';
   
   // State for prediction input and results
   const [predictionText, setPredictionText] = useState<string>('');

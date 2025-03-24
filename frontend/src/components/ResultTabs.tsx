@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import InvestmentStrategyTab from './InvestmentStrategyTab';
 import PredictionAnalysisTab from './PredictionAnalysisTab';
 import RelevantTickersTab from './RelevantTickersTab';
