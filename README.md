@@ -9,6 +9,39 @@ A modular FastAPI application to fetch and analyze financial data from multiple 
 - **Indices Data**: Get data for major market indices
 - **Stock Screening**: Filter stocks based on various fundamental and technical criteria using Finviz
 
+## Project Structure
+
+```
+api/
+├── __init__.py
+├── main.py                # Application entry point
+├── dependencies.py        # FastAPI dependencies
+├── routes/                # API route definitions
+│   ├── __init__.py
+│   ├── finviz.py          # Stock screening endpoints
+│   ├── indices.py         # Market indices endpoints
+│   ├── options.py         # Options data endpoints
+│   └── stock.py           # Stock data endpoints
+├── models/                # Pydantic data models
+│   ├── __init__.py
+│   ├── enums.py           # Enum definitions
+│   ├── finviz.py          # Stock screening models
+│   ├── options.py         # Options data models
+│   ├── stocks.py          # Stock data models
+│   └── tickers.py         # Ticker listing models
+├── services/              # Business logic and external API clients
+│   ├── __init__.py
+│   ├── finviz.py          # Finviz scraping service
+│   └── polygon.py         # Polygon.io API client
+├── middleware/            # Custom middleware
+│   ├── __init__.py
+│   └── rate_limiter.py    # Polygon API rate limiter
+└── core/                  # Core application components
+    ├── __init__.py
+    ├── config.py          # Application configuration
+    └── exceptions.py      # Custom exceptions
+```
+
 ## Setup
 
 ### Prerequisites
@@ -85,39 +118,6 @@ The API will be available at:
 - `POST /api/v1/stocks/screener` - Get stock tickers based on specified filters
 - `GET /api/v1/stocks/filters` - Get all available filters for the screener
 - `POST /api/v1/stocks/options` - Get available options for specified filters
-
-## Project Structure
-
-```
-api/
-├── __init__.py
-├── main.py                # Application entry point
-├── dependencies.py        # FastAPI dependencies
-├── routes/                # API route definitions
-│   ├── __init__.py
-│   ├── finviz.py          # Stock screening endpoints
-│   ├── indices.py         # Market indices endpoints
-│   ├── options.py         # Options data endpoints
-│   └── stock.py           # Stock data endpoints
-├── models/                # Pydantic data models
-│   ├── __init__.py
-│   ├── enums.py           # Enum definitions
-│   ├── finviz.py          # Stock screening models
-│   ├── options.py         # Options data models
-│   ├── stocks.py          # Stock data models
-│   └── tickers.py         # Ticker listing models
-├── services/              # Business logic and external API clients
-│   ├── __init__.py
-│   ├── finviz.py          # Finviz scraping service
-│   └── polygon.py         # Polygon.io API client
-├── middleware/            # Custom middleware
-│   ├── __init__.py
-│   └── rate_limiter.py    # Polygon API rate limiter
-└── core/                  # Core application components
-    ├── __init__.py
-    ├── config.py          # Application configuration
-    └── exceptions.py      # Custom exceptions
-```
 
 ## Rate Limiting
 
