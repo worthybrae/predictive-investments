@@ -1,9 +1,12 @@
 # api/dependencies.py
-from fastapi import Depends, HTTPException, status
-from api.core.config import get_settings, Settings
-from api.core.exceptions import ConfigurationException
+import os
+from fastapi import HTTPException, status
+from dotenv import load_dotenv
 
-async def get_api_key(settings: Settings = Depends(get_settings)):
+# Load environment variables
+load_dotenv()
+
+async def get_api_key():
     """
     Dependency to validate that the Polygon.io API key is configured.
     
@@ -11,18 +14,52 @@ async def get_api_key(settings: Settings = Depends(get_settings)):
         The API key if it exists
         
     Raises:
-        ConfigurationException: If the API key is not set
+        HTTPException: If the API key is not set
     """
-    if not settings.POLYGON_API_KEY:
-        raise ConfigurationException(detail="Polygon.io API key not configured")
+    api_key = os.getenv("POLYGON_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Polygon.io API key not configured"
+        )
     
-    return settings.POLYGON_API_KEY
+    return api_key
 
-async def get_settings_dependency():
+# Add these dependencies for AI services
+async def get_openai_api_key():
     """
-    Get application settings.
+    Dependency to validate that the OpenAI API key is configured.
     
     Returns:
-        Application settings
+        The API key if it exists
+        
+    Raises:
+        HTTPException: If the API key is not set
     """
-    return get_settings()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OpenAI API key not configured"
+        )
+    
+    return api_key
+
+async def get_perplexity_api_key():
+    """
+    Dependency to validate that the Perplexity API key is configured.
+    
+    Returns:
+        The API key if it exists
+        
+    Raises:
+        HTTPException: If the API key is not set
+    """
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Perplexity API key not configured"
+        )
+    
+    return api_key

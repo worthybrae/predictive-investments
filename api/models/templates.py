@@ -1,7 +1,7 @@
 # api/templates/templates.py
 import json
-from api.services.industry_mapper import IndustryMapperService
-from api.models.predictions import PredictionAnalysis, InvestmentStrategy, RelevantTickers, FilterSelection, FilterValueSelection
+from services.industry_mapper import IndustryMapperService
+from models.predictions import PredictionAnalysis, InvestmentStrategy, RelevantTickers, FilterSelection, FilterValueSelection
 
 # Get industry data for inclusion in templates
 industry_data = IndustryMapperService.get_industries_for_prompt()

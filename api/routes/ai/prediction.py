@@ -4,11 +4,11 @@ from typing import Dict, Any, List
 import logging
 from pydantic import BaseModel
 
-from api.services.ai import AIService
+from services.ai import AIService
 
-from api.models.predictions import PredictionStatusResponse
-from api.dependencies import get_api_key
-from api.services.prediction_queue import PredictionQueueManager
+from models.predictions import PredictionStatusResponse
+from dependencies import get_api_key
+from services.prediction_queue import PredictionQueueManager
 
 logger = logging.getLogger(__name__)
 

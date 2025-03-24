@@ -11,61 +11,29 @@ from polygon.rest.models import (
     OptionsContract,
     Ticker
 )
-from api.models.enums import Timespan, SortOrder
-from api.core.exceptions import PolygonAPIException
+from models.enums import Timespan, SortOrder
 
 load_dotenv()
 
 class PolygonClientSingleton:
     """
-    Singleton class for Polygon REST client with built-in rate limiting.
+    Singleton class for Polygon REST client.
     """
     _instance = None
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(PolygonClientSingleton, cls).__new__(cls)
-            cls._instance._initialize()
+            polygon_api_key = os.getenv('POLYGON_API_KEY')
+            if not polygon_api_key:
+                raise ValueError("POLYGON_API_KEY environment variable is not set")
+            cls._instance.client = RESTClient(polygon_api_key)
         return cls._instance
     
-    def _initialize(self):
-        """Initialize the singleton instance."""
-        self.client = RESTClient(os.getenv('POLYGON_API_KEY'))
-        # Rate limiting tracking
-        self.request_times = deque(maxlen=10)  # Track last 10 requests
-        self.max_requests = 5  # 5 requests per minute
-        self.time_window = 60  # 60 seconds (1 minute)
-    
-    def _check_rate_limit(self):
-        """
-        Check if we're about to exceed the rate limit and handle accordingly.
-        
-        Returns:
-            bool: True if request can proceed, False if we need to wait
-        """
-        current_time = time.time()
-        
-        # Remove requests older than the time window
-        while self.request_times and current_time - self.request_times[0] > self.time_window:
-            self.request_times.popleft()
-        
-        # If we've hit the rate limit, wait until we can proceed
-        if len(self.request_times) >= self.max_requests:
-            oldest_request = self.request_times[0]
-            time_to_wait = oldest_request + self.time_window - current_time
-            
-            if time_to_wait > 0:
-                print(f"Rate limit reached. Waiting {time_to_wait:.2f} seconds...")
-                time.sleep(time_to_wait + 0.1)  # Add a small buffer
-        
-        # Add the current request time
-        self.request_times.append(time.time())
-        return True
-    
-    def get_client(self):
-        """Get the underlying RESTClient for direct use."""
-        self._check_rate_limit()
-        return self.client
+    @classmethod
+    def get_client(cls) -> RESTClient:
+        """Get the Polygon REST client instance."""
+        return cls().client
 
 class PolygonService:
     """Service for interacting with the Polygon.io API using the official SDK."""
@@ -146,7 +114,7 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")
     
     @classmethod
     async def get_ticker_details(
@@ -198,7 +166,7 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")
         
     @classmethod
     async def get_ticker_news(
@@ -288,7 +256,7 @@ class PolygonService:
             return response
                 
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API news error: {str(e)}")
+            raise Exception(detail=f"Polygon API news error: {str(e)}")
                 
     @classmethod
     async def get_options_contracts(
@@ -389,7 +357,7 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")
 
     @classmethod
     async def get_options_aggregates(
@@ -464,7 +432,7 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")
 
     @classmethod
     async def list_tickers(
@@ -540,7 +508,7 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")
             
     @classmethod
     async def get_index_aggregates(
@@ -617,4 +585,4 @@ class PolygonService:
             return response
             
         except Exception as e:
-            raise PolygonAPIException(detail=f"Polygon API error: {str(e)}")
+            raise Exception(detail=f"Polygon API error: {str(e)}")

@@ -4,8 +4,8 @@ from typing import Dict, Any, Optional
 import logging
 from pydantic import BaseModel
 
-from api.dependencies import get_api_key
-from api.services.ai import AIService
+from dependencies import get_api_key
+from services.ai import AIService
 
 logger = logging.getLogger(__name__)
 

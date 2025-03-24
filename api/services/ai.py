@@ -1,14 +1,12 @@
 # api/services/ai_service.py
 import json
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-import asyncio
-
-from api.services.openai import OpenAITemplateService
-from api.services.perplexity import PerplexityService
-from api.models.templates import TEMPLATES
-from api.processors.prediction import PredictionProcessor
-from api.processors.finviz import FinvizProcessor
+from typing import Dict, Any, List, Optional
+from services.openai import OpenAITemplateService
+from services.perplexity import PerplexityService
+from models.templates import TEMPLATES
+from processors.prediction import PredictionProcessor
+from processors.finviz import FinvizProcessor
 
 logger = logging.getLogger(__name__)
 

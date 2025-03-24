@@ -1,10 +1,10 @@
 # api/routes/options.py
 from fastapi import APIRouter, Depends, Query, Path
 from typing import Optional
-from api.models.options import OptionsContractsResponse, OptionsDataResponse
-from api.models.enums import Timespan, SortOrder
-from api.dependencies import get_api_key
-from api.services.polygon import PolygonService
+from models.options import OptionsContractsResponse, OptionsDataResponse
+from models.enums import Timespan, SortOrder
+from dependencies import get_api_key
+from services.polygon import PolygonService
 
 router = APIRouter(prefix="/options", tags=["options"])
 

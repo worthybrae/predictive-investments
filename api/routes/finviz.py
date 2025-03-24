@@ -1,9 +1,9 @@
 # api/routes/finviz.py
 from typing import List
 from fastapi import APIRouter, Depends
-from api.models.finviz import ScreenerRequest, ScreenerResponse, FiltersResponse, OptionResponse, OptionRequest
-from api.services.finviz import FinvizService
-from api.dependencies import get_api_key
+from models.finviz import ScreenerRequest, ScreenerResponse, FiltersResponse, OptionResponse, OptionRequest
+from services.finviz import FinvizService
+from dependencies import get_api_key
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 

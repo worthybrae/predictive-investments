@@ -2,7 +2,7 @@
 import logging
 from typing import Dict, Any, List
 
-from api.services.finviz import FinvizService
+from services.finviz import FinvizService
 
 logger = logging.getLogger(__name__)
 

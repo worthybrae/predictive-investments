@@ -2,9 +2,8 @@
 import os
 import uuid
 import httpx
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from dotenv import load_dotenv
-from api.core.exceptions import ConfigurationException
 
 load_dotenv()
 
@@ -18,7 +17,7 @@ class PerplexityService:
         """Get the Perplexity API key from environment variables."""
         api_key = os.getenv("PERPLEXITY_API_KEY")
         if not api_key:
-            raise ConfigurationException(detail="Perplexity API key not configured")
+            raise Exception(detail="Perplexity API key not configured")
         return api_key
     
     @classmethod

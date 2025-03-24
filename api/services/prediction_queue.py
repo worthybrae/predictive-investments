@@ -4,8 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Optional, Any, List
 
-from api.models.predictions import PredictionStatus, PredictionStatusResponse
-from api.services.ai import AIService
+from models.predictions import PredictionStatus, PredictionStatusResponse
+from services.ai import AIService
 
 class PredictionQueueManager:
     """Manager for asynchronous prediction processing."""

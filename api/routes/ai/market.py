@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, Query
 from typing import Dict, Any, List, Optional
 import logging
 
-from api.dependencies import get_api_key
-from api.services.ai import AIService
-from api.services.industry_mapper import IndustryMapperService
+from dependencies import get_api_key
+from services.ai import AIService
+from services.industry_mapper import IndustryMapperService
 
 logger = logging.getLogger(__name__)
 

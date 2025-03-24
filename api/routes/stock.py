@@ -1,10 +1,10 @@
 # api/routes/stocks.py
 from fastapi import APIRouter, Depends, Query, Path
 from typing import Optional
-from api.models.stocks import StockDataResponse, StockDetailsResponse, NewsResponse
-from api.models.enums import Timespan, SortOrder
-from api.dependencies import get_api_key
-from api.services.polygon import PolygonService
+from models.stocks import StockDataResponse, StockDetailsResponse, NewsResponse
+from models.enums import Timespan, SortOrder
+from dependencies import get_api_key
+from services.polygon import PolygonService
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 

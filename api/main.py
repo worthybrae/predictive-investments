@@ -1,10 +1,12 @@
 # api/main.py
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routes import router as api_router
 
-from api.core.config import get_settings
-from api.routes import router as api_router
-from api.middleware.rate_limiter import PolygonRateLimiter
+# Load environment variables
+load_dotenv()
 
 def create_application() -> FastAPI:
     """
@@ -13,36 +15,40 @@ def create_application() -> FastAPI:
     Returns:
         Configured FastAPI application
     """
-    settings = get_settings()
+    # App settings from environment variables with defaults
+    project_name = os.getenv("PROJECT_NAME", "Stock Data API")
+    project_description = os.getenv("PROJECT_DESCRIPTION", "A modular API to fetch stock data from Polygon.io")
+    project_version = os.getenv("PROJECT_VERSION", "0.1.0")
+    api_prefix = os.getenv("API_PREFIX", "/api/v1")
+    
+    # CORS settings
+    cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
     
     application = FastAPI(
-        title=settings.PROJECT_NAME,
-        description=settings.PROJECT_DESCRIPTION,
-        version=settings.PROJECT_VERSION,
+        title=project_name,
+        description=project_description,
+        version=project_version,
     )
     
     # Add CORS middleware
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     
-    # Add rate limiter middleware for Polygon API
-    application.add_middleware(PolygonRateLimiter)
-    
     # Include API routes
-    application.include_router(api_router, prefix=settings.API_V1_STR)
+    application.include_router(api_router, prefix=api_prefix)
     
     @application.get("/", tags=["status"])
     async def root():
         """API health check endpoint."""
         return {
             "status": "online",
-            "message": f"{settings.PROJECT_NAME} is running",
-            "version": settings.PROJECT_VERSION
+            "message": f"{project_name} is running",
+            "version": project_version
         }
     
     return application

@@ -3,8 +3,7 @@ import os
 import uuid
 from typing import Dict, Any
 from openai import OpenAI
-from api.core.exceptions import ConfigurationException
-from api.models.templates import TEMPLATES
+from models.templates import TEMPLATES
 
 class OpenAITemplateService:
     """Service for interacting with OpenAI API using templates."""
@@ -14,7 +13,7 @@ class OpenAITemplateService:
         """Get the OpenAI client."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ConfigurationException(detail="OpenAI API key not configured")
+            raise Exception(detail="OpenAI API key not configured")
         
         # Initialize the client with the API key and other optional settings
         client_options = {

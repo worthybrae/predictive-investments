@@ -3,8 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
-from api.services.polygon import PolygonService
-from api.models.enums import Timespan, SortOrder
+from services.polygon import PolygonService
+from models.enums import Timespan, SortOrder
 
 logger = logging.getLogger(__name__)
 
